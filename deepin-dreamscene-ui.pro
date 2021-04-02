@@ -2,7 +2,7 @@ TEMPLATE = app
 
 QT += gui x11extras widgets dbus
 CONFIG += c++11 link_pkgconfig
-PKGCONFIG += xcb-ewmh dtkwidget mpv
+PKGCONFIG += xcb-ewmh dtkwidget mpv x11
 TARGET = deepin-dreamscene-ui
 
 DEFINES += QT_DEPRECATED_WARNINGS
@@ -28,7 +28,8 @@ HEADERS += \
     data.h \
     listview/delegate.h \
     listview/view.h \
-    listview/historywidget.h
+    listview/historywidget.h \
+    setdesktop.h
 
 RESOURCES += \
     qrc.qrc

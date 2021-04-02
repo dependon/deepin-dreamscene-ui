@@ -2,9 +2,11 @@
 #include <QIcon>
 #include <QDir>
 #include <QUrl>
-#include <QMutex>
 #include <QMutexLocker>
+#include <QWindow>
 #include <QCryptographicHash>
+
+#include "setdesktop.h"
 
 const QString toMd5(const QByteArray &data)
 {
@@ -56,7 +58,6 @@ const QString Application::thumbnailCachePath()
     return thumbCacheP;
 }
 
-QMutex mutex;
 const QPixmap Application::getThumbnail(const QString &path)
 {
     QMutexLocker locker(&mutex);
@@ -76,5 +77,25 @@ const QPixmap Application::getThumbnail(const QString &path)
     } else { /*if (QFileInfo(failEncodePath).exists()) */
         qDebug() << "Fail-thumbnail exist, won't regenerate: " ;
         return QPixmap();
+    }
+}
+
+void Application::setDesktopTransparent()
+{
+    //dbus开启壁纸透明
+    system("qdbus --literal com.deepin.dde.desktop /com/deepin/dde/desktop com.deepin.dde.desktop.EnableBackground false");
+    //设置desktop透明
+    char str[12] = "dde-desktop";
+    int pid_t[128];
+    find_pid_by_name(str, pid_t);
+    int pid = pid_t[0];
+    Display *display = XOpenDisplay(0);
+    WindowsMatchingPid match(display, XDefaultRootWindow(display), pid);
+    const list<Window> &result = match.result();
+    for (Window id : result) {
+        QWindow *window = QWindow::fromWinId((unsigned long)id);
+        if (window != nullptr) {
+            window->setOpacity(0.99);
+        }
     }
 }

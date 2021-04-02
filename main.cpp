@@ -119,6 +119,8 @@ int main(int argc, char *argv[])
                                  QDBusConnection::sessionBus());
             iface.asyncCall("Register", QString(cookie));
         }
+
+        dApp->setDesktopTransparent();
     } else {
         return 0;
     }

@@ -313,5 +313,12 @@ void Wallpaper::updateGeometry()
     m_mpv->setFixedSize(size1);
 
     lower();
+
+    QTimer::singleShot(100, this, []() {
+        for (int index = 0; index < dApp->desktop()->screenCount(); index++) {
+            system("xdotool search --class dde-desktop windowactivate");
+        }
+        qDebug() << "Desktop WindowActivate";
+    });
 //    });
 }

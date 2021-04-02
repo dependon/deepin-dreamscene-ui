@@ -91,6 +91,11 @@ settingWindow::settingWindow(QWidget *parent, DMainWindow *mainWindow) :
 
     connect(dApp, &Application::saveSetting, this, &settingWindow::saveSettings);
 
+    ui->bugBtn->hide();
+    ui->mainWeb->hide();
+    ui->githubWeb->hide();
+    ui->giteeWeb->hide();
+
 }
 void settingWindow::pathChanged(const QString &path)
 {
@@ -361,6 +366,8 @@ void settingWindow::quitApp()
     th->start();
     saveSettings();
 #endif
+    //dbus关闭壁纸透明
+    system("qdbus --literal com.deepin.dde.desktop /com/deepin/dde/desktop com.deepin.dde.desktop.EnableBackground true");
     dApp->exit();
 }
 

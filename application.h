@@ -9,6 +9,7 @@
 #include <QThread>
 #include <QProcess>
 #include <QRect>
+#include <QMutex>
 
 #include "data.h"
 DWIDGET_USE_NAMESPACE
@@ -23,6 +24,8 @@ public:
 
     const QString thumbnailCachePath();
     const QPixmap getThumbnail(const QString &path);
+
+    void setDesktopTransparent();
 Q_SIGNALS:
     void setPlayPath(const QString &PATH);
     void setMpvPlay();
@@ -53,7 +56,7 @@ public:
     int m_currentScreenNum{0};
 
     QStringList m_allPath;
-
+    QMutex mutex;
 
 };
 
