@@ -58,6 +58,7 @@ public:
     QStringList m_allPath;
     QMutex mutex;
 
+    QMap <unsigned long, bool>m_x11WindowFuscreen;
 };
 
 #endif // APPLICATION_H

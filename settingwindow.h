@@ -7,7 +7,7 @@
 class QSystemTrayIcon;
 class QMenu;
 class historyWidget;
-
+class QThread;
 namespace Ui {
 class settingWindow;
 }
@@ -86,6 +86,8 @@ private slots:
 
     void on_pathEdit_textChanged(const QString &arg1);
 
+    void on_checkBox_stateChanged(int arg1);
+
 private:
     Ui::settingWindow *ui;
     QSystemTrayIcon *m_trayIcon{nullptr};
@@ -103,6 +105,13 @@ private:
 
     QString m_videoASpectStr{"默认"};
     double m_videoAspect{1.33};
+
+    QThread *m_x11thread{nullptr};
+    bool m_stopx11Thread{false};
+
+    bool m_isNoMpvPause{true};
+
+    int m_isAutoMode{0};
 };
 
 #endif // SETTINGWINDOW_H

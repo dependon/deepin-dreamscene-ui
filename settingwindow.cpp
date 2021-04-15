@@ -17,7 +17,10 @@
 #include <QDropEvent>
 #include <QMimeData>
 
-#include <listview/historywidget.h>
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
+
+#include "listview/historywidget.h"
 DCORE_USE_NAMESPACE
 
 #define SETTINGPATH "config.ini"
@@ -44,11 +47,17 @@ settingWindow::settingWindow(QWidget *parent, DMainWindow *mainWindow) :
 
     QAction *setMpvPlayAction = new QAction(m_traymenu);
     setMpvPlayAction->setText("播放");
-    connect(setMpvPlayAction, &QAction::triggered, dApp, &Application::setMpvPlay);
+    connect(setMpvPlayAction, &QAction::triggered, this, [ = ] {
+        emit dApp->setMpvPlay();
+        m_isNoMpvPause = true;
+    });
 
     QAction *setMpvpauseAction = new QAction(m_traymenu);
     setMpvpauseAction->setText("暂停");
-    connect(setMpvpauseAction, &QAction::triggered, dApp, &Application::setMpvpause);
+    connect(setMpvpauseAction, &QAction::triggered, this, [ = ] {
+        emit dApp->setMpvpause();
+        m_isNoMpvPause = false;
+    });
 
     QAction *setHistoryAction = new QAction(m_traymenu);
     setHistoryAction->setText("历史壁纸");
@@ -132,6 +141,7 @@ void settingWindow::readSettings()
     m_voiceVolume = settings.value("WallPaper/voiceVolume").toInt();
     m_videoAspect = settings.value("WallPaper/videoAspect").toDouble();
     m_videoASpectStr = settings.value("WallPaper/videoAspectStr").toString();
+    m_isAutoMode = settings.value("WallPaper/videoAutoMode").toInt();;
     ui->videoBLEdit->setText(QString::number(m_videoAspect));
     ui->videoBLCombox->setCurrentText(m_videoASpectStr);
 
@@ -186,6 +196,13 @@ void settingWindow::readSettings()
         }
 
         on_videoBLCombox_activated(m_videoASpectStr);
+
+        if (m_isAutoMode == 1)
+        {
+            ui->checkBox->setCheckState(Qt::Checked);
+        }
+
+        on_checkBox_stateChanged(m_isAutoMode);
     });
 
 
@@ -208,6 +225,7 @@ void settingWindow::saveSettings()
     settings.setValue("WallPaper/voiceVolume", m_voiceVolume);
     settings.setValue("WallPaper/videoAspect", m_videoAspect);
     settings.setValue("WallPaper/videoAspectStr", m_videoASpectStr);
+    settings.setValue("WallPaper/videoAutoMode", m_isAutoMode);
 
     int indexLocal = 1;
     //去重
@@ -256,6 +274,7 @@ void settingWindow::on_setBtn_clicked()
         m_currentPath = m_currentPath.replace("file://", "");
         emit dApp->setPlayPath(ui->pathEdit->text());
         emit dApp->setMpvPlay();
+        m_isNoMpvPause = true;
         dApp->m_allPath.push_back(m_currentPath);
         saveSettings();
         emit dApp->addPaperView(m_currentPath);
@@ -276,11 +295,13 @@ void settingWindow::on_cancelBtn_clicked()
 void settingWindow::on_pauseBtn_clicked()
 {
     emit dApp->setMpvpause();
+    m_isNoMpvPause = false;
 }
 
 void settingWindow::on_stopBtn_clicked()
 {
     emit dApp->setMpvstop();
+    m_isNoMpvPause = false;
 }
 
 void settingWindow::on_Slider_valueChanged(int value)
@@ -294,6 +315,7 @@ void settingWindow::on_Slider_valueChanged(int value)
 void settingWindow::on_startBtn_clicked()
 {
     emit dApp->setMpvPlay();
+    m_isNoMpvPause = true;
 }
 
 void settingWindow::on_startScreen_clicked()
@@ -368,6 +390,11 @@ void settingWindow::quitApp()
 #endif
     //dbus关闭壁纸透明
     system("qdbus --literal com.deepin.dde.desktop /com/deepin/dde/desktop com.deepin.dde.desktop.EnableBackground true");
+    m_stopx11Thread = true;
+    if (m_x11thread) {
+        m_x11thread->wait();
+        m_x11thread->quit();
+    }
     dApp->exit();
 }
 
@@ -401,6 +428,7 @@ void settingWindow::slotWallPaper(const QString &path)
             ui->pixThumbnail->setPixmap(pix);
         }
         emit dApp->setMpvPlay();
+        m_isNoMpvPause = true;
         dApp->m_allPath.push_back(m_currentPath);
         dApp->m_allPath = dApp->m_allPath.toSet().toList();
         saveSettings();
@@ -515,4 +543,64 @@ void settingWindow::on_pathEdit_textChanged(const QString &arg1)
     if (!pix.isNull()) {
         ui->pixThumbnail->setPixmap(pix);
     }
+}
+
+void settingWindow::on_checkBox_stateChanged(int arg1)
+{
+    if (arg1 == 0) {
+        m_isAutoMode = 0;
+        if (m_x11thread) {
+            m_x11thread->wait();
+            m_x11thread->quit();
+            m_x11thread = nullptr;
+        }
+    } else {
+        m_isAutoMode = 1;
+        if (!m_x11thread) {
+            QTimer::singleShot(2000, [ = ] {
+                m_x11thread = QThread::create([ = ]()
+                {
+                    Display *display;
+                    Window rootwin;
+                    display = XOpenDisplay(NULL);
+                    rootwin = DefaultRootWindow(display);
+                    XSelectInput(display, rootwin, SubstructureNotifyMask); /*事件可以参考x.h*/
+                    XEvent event;
+                    while (!m_stopx11Thread) {
+                        XNextEvent(display, &event);
+                        switch (event.type) {
+                        case ConfigureNotify: {
+                            XConfigureEvent *configureEvent = (XConfigureEvent *)&event;
+                            if (configureEvent) {
+                                if (0 >= configureEvent->x && 0 >= configureEvent->y) {
+                                    int screenwidth = qApp->desktop()->screen()->rect().width() - 100;
+                                    int screenheight = qApp->desktop()->screen()->rect().height() - 150;
+                                    if (configureEvent->width > screenwidth && configureEvent->height > screenheight) {
+                                        dApp->m_x11WindowFuscreen.insert(configureEvent->window, true);
+                                        dApp->setMpvpause();
+                                        break;
+                                    }
+
+                                }
+                                if (dApp->m_x11WindowFuscreen.contains(configureEvent->window)) {
+                                    dApp->m_x11WindowFuscreen.remove(configureEvent->window);
+                                }
+                            }
+                            qDebug() << dApp->m_x11WindowFuscreen.count();
+                            if (dApp->m_x11WindowFuscreen.count() == 0 && m_isNoMpvPause) {
+                                dApp->setMpvPlay();
+                            }
+                            break;
+                        }
+                        default:
+                            break;
+                        }
+                    }
+
+                });
+                m_x11thread->start();
+            });
+        }
+    }
+    saveSettings();
 }
