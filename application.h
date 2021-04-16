@@ -59,6 +59,7 @@ public:
     QMutex mutex;
 
     QMap <unsigned long, bool>m_x11WindowFuscreen;
+    QVector <unsigned long> m_screenWid;
 };
 
 #endif // APPLICATION_H

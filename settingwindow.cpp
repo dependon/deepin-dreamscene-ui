@@ -197,6 +197,9 @@ void settingWindow::readSettings()
 
         on_videoBLCombox_activated(m_videoASpectStr);
 
+
+    });
+    QTimer::singleShot(2000, [ = ] {
         if (m_isAutoMode == 1)
         {
             ui->checkBox->setCheckState(Qt::Checked);
@@ -204,8 +207,6 @@ void settingWindow::readSettings()
 
         on_checkBox_stateChanged(m_isAutoMode);
     });
-
-
 
     qDebug() << "x";
 }
@@ -392,8 +393,8 @@ void settingWindow::quitApp()
     system("qdbus --literal com.deepin.dde.desktop /com/deepin/dde/desktop com.deepin.dde.desktop.EnableBackground true");
     m_stopx11Thread = true;
     if (m_x11thread) {
-        m_x11thread->wait();
-        m_x11thread->quit();
+//        m_x11thread->wait();
+        m_x11thread->terminate();
     }
     dApp->exit();
 }
@@ -549,15 +550,17 @@ void settingWindow::on_checkBox_stateChanged(int arg1)
 {
     if (arg1 == 0) {
         m_isAutoMode = 0;
+        m_stopx11Thread = true;
         if (m_x11thread) {
-            m_x11thread->wait();
-            m_x11thread->quit();
+//            m_x11thread->wait();
+            m_x11thread->terminate();
             m_x11thread = nullptr;
         }
     } else {
+        m_stopx11Thread = false;
         m_isAutoMode = 1;
         if (!m_x11thread) {
-            QTimer::singleShot(2000, [ = ] {
+            QTimer::singleShot(0, [ = ] {
                 m_x11thread = QThread::create([ = ]()
                 {
                     Display *display;
@@ -570,20 +573,36 @@ void settingWindow::on_checkBox_stateChanged(int arg1)
                         XNextEvent(display, &event);
                         switch (event.type) {
                         case ConfigureNotify: {
+                            int screenwidth = qApp->desktop()->screen()->rect().width() - 100;
+                            int screenheight = qApp->desktop()->screen()->rect().height() - 150;
                             XConfigureEvent *configureEvent = (XConfigureEvent *)&event;
                             if (configureEvent) {
                                 if (0 >= configureEvent->x && 0 >= configureEvent->y) {
-                                    int screenwidth = qApp->desktop()->screen()->rect().width() - 100;
-                                    int screenheight = qApp->desktop()->screen()->rect().height() - 150;
-                                    if (configureEvent->width > screenwidth && configureEvent->height > screenheight) {
+                                    if (!dApp->m_screenWid.contains(configureEvent->window) && configureEvent->width > screenwidth && configureEvent->height > screenheight) {
                                         dApp->m_x11WindowFuscreen.insert(configureEvent->window, true);
                                         dApp->setMpvpause();
                                         break;
                                     }
 
                                 }
-                                if (dApp->m_x11WindowFuscreen.contains(configureEvent->window)) {
+                                if (dApp->m_x11WindowFuscreen.contains(configureEvent->window) || dApp->m_screenWid.contains(configureEvent->window)) {
                                     dApp->m_x11WindowFuscreen.remove(configureEvent->window);
+                                }
+                            }
+                            for (auto window : dApp->m_x11WindowFuscreen.keys()) {
+                                Drawable   d     /* d */;
+                                Window     w /* root_return */;
+                                int      x = 0   /* x_return */;
+                                int      y = 0  /* y_return */;
+                                unsigned int width = 0   /* width_return */;
+                                unsigned int height = 0   /* height_return */;
+                                unsigned int border_width = 0  /* border_width_return */;
+                                unsigned int  depin = 0/* depth_return */;
+
+                                XGetGeometry(display,  window, &w, &x, &y, &width, &height, &border_width, &depin);
+                                qDebug() << width << height;
+                                if (x > 0 && y > 0) {
+                                    dApp->m_x11WindowFuscreen.remove(window);
                                 }
                             }
                             qDebug() << dApp->m_x11WindowFuscreen.count();

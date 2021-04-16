@@ -97,5 +97,8 @@ void Application::setDesktopTransparent()
         if (window != nullptr) {
             window->setOpacity(0.99);
         }
+        if (!m_screenWid.contains(id)) {
+            m_screenWid.push_back(id);
+        }
     }
 }
