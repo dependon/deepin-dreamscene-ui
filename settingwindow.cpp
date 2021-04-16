@@ -585,7 +585,7 @@ void settingWindow::on_checkBox_stateChanged(int arg1)
                                     }
 
                                 }
-                                if (dApp->m_x11WindowFuscreen.contains(configureEvent->window) || dApp->m_screenWid.contains(configureEvent->window)) {
+                                if (/*dApp->m_x11WindowFuscreen.contains(configureEvent->window) || */dApp->m_screenWid.contains(configureEvent->window)) {
                                     dApp->m_x11WindowFuscreen.remove(configureEvent->window);
                                 }
                             }
@@ -600,8 +600,10 @@ void settingWindow::on_checkBox_stateChanged(int arg1)
                                 unsigned int  depin = 0/* depth_return */;
 
                                 XGetGeometry(display,  window, &w, &x, &y, &width, &height, &border_width, &depin);
-                                qDebug() << width << height;
-                                if (x > 0 && y > 0) {
+                                qDebug() << x << y << width << height << border_width << depin;
+                                int iWidth = width;
+                                int iHeight = height;
+                                if ((x > 0 && y > 0) || (iWidth < screenwidth && iHeight < screenheight) || depin == 32) {
                                     dApp->m_x11WindowFuscreen.remove(window);
                                 }
                             }
