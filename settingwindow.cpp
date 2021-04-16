@@ -573,15 +573,29 @@ void settingWindow::on_checkBox_stateChanged(int arg1)
                         XNextEvent(display, &event);
                         switch (event.type) {
                         case ConfigureNotify: {
-                            int screenwidth = qApp->desktop()->screen()->rect().width() - 100;
-                            int screenheight = qApp->desktop()->screen()->rect().height() - 150;
+                            int screenwidth = qApp->desktop()->screenGeometry().width() - 10;
+                            int screenheight = qApp->desktop()->screenGeometry().height() - 150;
                             XConfigureEvent *configureEvent = (XConfigureEvent *)&event;
                             if (configureEvent) {
                                 if (0 >= configureEvent->x && 0 >= configureEvent->y) {
                                     if (!dApp->m_screenWid.contains(configureEvent->window) && configureEvent->width > screenwidth && configureEvent->height > screenheight) {
-                                        dApp->m_x11WindowFuscreen.insert(configureEvent->window, true);
-                                        dApp->setMpvpause();
-                                        break;
+
+                                        Drawable   d     /* d */;
+                                        Window     w /* root_return */;
+                                        int      x = 0   /* x_return */;
+                                        int      y = 0  /* y_return */;
+                                        unsigned int width = 0   /* width_return */;
+                                        unsigned int height = 0   /* height_return */;
+                                        unsigned int border_width = 0  /* border_width_return */;
+                                        unsigned int  depin = 0/* depth_return */;
+                                        XGetGeometry(display,  configureEvent->window, &w, &x, &y, &width, &height, &border_width, &depin);
+
+                                        if (depin != 32) {
+                                            dApp->m_x11WindowFuscreen.insert(configureEvent->window, true);
+                                            dApp->setMpvpause();
+                                            break;
+                                        }
+
                                     }
 
                                 }
