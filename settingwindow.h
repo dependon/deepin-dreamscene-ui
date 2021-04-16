@@ -109,7 +109,6 @@ private:
     QThread *m_x11thread{nullptr};
     bool m_stopx11Thread{false};
 
-    bool m_isNoMpvPause{true};
 
     int m_isAutoMode{0};
 };

@@ -49,14 +49,15 @@ settingWindow::settingWindow(QWidget *parent, DMainWindow *mainWindow) :
     setMpvPlayAction->setText("播放");
     connect(setMpvPlayAction, &QAction::triggered, this, [ = ] {
         emit dApp->setMpvPlay();
-        m_isNoMpvPause = true;
+        dApp->m_isNoMpvPause = true;
+        dApp->m_x11WindowFuscreen.clear();
     });
 
     QAction *setMpvpauseAction = new QAction(m_traymenu);
     setMpvpauseAction->setText("暂停");
     connect(setMpvpauseAction, &QAction::triggered, this, [ = ] {
         emit dApp->setMpvpause();
-        m_isNoMpvPause = false;
+        dApp->m_isNoMpvPause = false;
     });
 
     QAction *setHistoryAction = new QAction(m_traymenu);
@@ -275,7 +276,7 @@ void settingWindow::on_setBtn_clicked()
         m_currentPath = m_currentPath.replace("file://", "");
         emit dApp->setPlayPath(ui->pathEdit->text());
         emit dApp->setMpvPlay();
-        m_isNoMpvPause = true;
+        dApp->m_isNoMpvPause = true;
         dApp->m_allPath.push_back(m_currentPath);
         saveSettings();
         emit dApp->addPaperView(m_currentPath);
@@ -296,13 +297,13 @@ void settingWindow::on_cancelBtn_clicked()
 void settingWindow::on_pauseBtn_clicked()
 {
     emit dApp->setMpvpause();
-    m_isNoMpvPause = false;
+    dApp->m_isNoMpvPause = false;
 }
 
 void settingWindow::on_stopBtn_clicked()
 {
     emit dApp->setMpvstop();
-    m_isNoMpvPause = false;
+    dApp->m_isNoMpvPause = false;
 }
 
 void settingWindow::on_Slider_valueChanged(int value)
@@ -316,7 +317,8 @@ void settingWindow::on_Slider_valueChanged(int value)
 void settingWindow::on_startBtn_clicked()
 {
     emit dApp->setMpvPlay();
-    m_isNoMpvPause = true;
+    dApp->m_isNoMpvPause = true;
+    dApp->m_x11WindowFuscreen.clear();
 }
 
 void settingWindow::on_startScreen_clicked()
@@ -378,17 +380,17 @@ void settingWindow::on_setManual_clicked()
 
 void settingWindow::quitApp()
 {
-#ifdef QT_NO_DEBUG
-    QProcess::execute("killall dde-desktop");
-    if (0 != dApp->m_processId) {
-        QProcess::execute("kill " + QString::number(dApp->m_processId));
-    }
-    QThread *th = QThread::create([ = ]() {
-        QProcess::execute("dde-desktop");
-    });
-    th->start();
-    saveSettings();
-#endif
+//#ifdef QT_NO_DEBUG
+//    QProcess::execute("killall dde-desktop");
+//    if (0 != dApp->m_processId) {
+//        QProcess::execute("kill " + QString::number(dApp->m_processId));
+//    }
+//    QThread *th = QThread::create([ = ]() {
+//        QProcess::execute("dde-desktop");
+//    });
+//    th->start();
+//    saveSettings();
+//#endif
     //dbus关闭壁纸透明
     system("qdbus --literal com.deepin.dde.desktop /com/deepin/dde/desktop com.deepin.dde.desktop.EnableBackground true");
     m_stopx11Thread = true;
@@ -429,7 +431,7 @@ void settingWindow::slotWallPaper(const QString &path)
             ui->pixThumbnail->setPixmap(pix);
         }
         emit dApp->setMpvPlay();
-        m_isNoMpvPause = true;
+        dApp->m_isNoMpvPause = true;
         dApp->m_allPath.push_back(m_currentPath);
         dApp->m_allPath = dApp->m_allPath.toSet().toList();
         saveSettings();
@@ -556,6 +558,7 @@ void settingWindow::on_checkBox_stateChanged(int arg1)
             m_x11thread->terminate();
             m_x11thread = nullptr;
         }
+        dApp->m_x11WindowFuscreen.clear();
     } else {
         m_stopx11Thread = false;
         m_isAutoMode = 1;
@@ -622,7 +625,7 @@ void settingWindow::on_checkBox_stateChanged(int arg1)
                                 }
                             }
                             qDebug() << dApp->m_x11WindowFuscreen.count();
-                            if (dApp->m_x11WindowFuscreen.count() == 0 && m_isNoMpvPause) {
+                            if (dApp->m_x11WindowFuscreen.count() == 0 && dApp->m_isNoMpvPause) {
                                 dApp->setMpvPlay();
                             }
                             break;

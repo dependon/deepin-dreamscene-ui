@@ -268,9 +268,11 @@ bool Wallpaper::event(QEvent *event)
 void Wallpaper::onSysLockState(QString, QVariantMap key2value, QStringList)
 {
     if (key2value.value("Locked").value<bool>()) {
+        dApp->m_isNoMpvPause = false;
         pause();
     } else {
         play();
+        dApp->m_isNoMpvPause = true;
     }
 }
 
