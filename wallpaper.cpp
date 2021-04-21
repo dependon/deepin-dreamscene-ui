@@ -248,6 +248,9 @@ void Wallpaper::registerDesktop()
         show();
         lower();
     });
+    if (!dApp->m_screenWid.contains(winId())) {
+        dApp->m_screenWid.push_back(winId());
+    }
 }
 
 bool Wallpaper::event(QEvent *event)

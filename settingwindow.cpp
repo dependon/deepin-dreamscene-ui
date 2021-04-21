@@ -574,65 +574,63 @@ void settingWindow::on_checkBox_stateChanged(int arg1)
                     XEvent event;
                     while (!m_stopx11Thread) {
                         XNextEvent(display, &event);
-                        switch (event.type) {
-                        case ConfigureNotify: {
-                            int screenwidth = qApp->desktop()->screenGeometry().width() - 10;
-                            int screenheight = qApp->desktop()->screenGeometry().height() - 150;
-                            XConfigureEvent *configureEvent = (XConfigureEvent *)&event;
-                            if (configureEvent) {
-                                if (0 >= configureEvent->x && 0 >= configureEvent->y) {
-                                    if (!dApp->m_screenWid.contains(configureEvent->window) && configureEvent->width > screenwidth && configureEvent->height > screenheight) {
 
-                                        Drawable   d     /* d */;
-                                        Window     w /* root_return */;
-                                        int      x = 0   /* x_return */;
-                                        int      y = 0  /* y_return */;
-                                        unsigned int width = 0   /* width_return */;
-                                        unsigned int height = 0   /* height_return */;
-                                        unsigned int border_width = 0  /* border_width_return */;
-                                        unsigned int  depin = 0/* depth_return */;
-                                        XGetGeometry(display,  configureEvent->window, &w, &x, &y, &width, &height, &border_width, &depin);
+                        int screenwidth = qApp->desktop()->screenGeometry().width() - 10;
+                        int screenheight = qApp->desktop()->screenGeometry().height() - 150;
+                        XConfigureEvent *configureEvent = (XConfigureEvent *)&event;
+                        if (configureEvent) {
+                            if (0 >= configureEvent->x && 0 >= configureEvent->y) {
+                                if (!dApp->m_screenWid.contains(configureEvent->window) && configureEvent->width > screenwidth && configureEvent->height > screenheight) {
 
-                                        if (depin != 32) {
-                                            dApp->m_x11WindowFuscreen.insert(configureEvent->window, true);
-                                            dApp->setMpvpause();
-                                            break;
-                                        }
+                                    Drawable   d     /* d */;
+                                    Window     w /* root_return */;
+                                    int      x = 0   /* x_return */;
+                                    int      y = 0  /* y_return */;
+                                    unsigned int width = 0   /* width_return */;
+                                    unsigned int height = 0   /* height_return */;
+                                    unsigned int border_width = 0  /* border_width_return */;
+                                    unsigned int  depin = 0/* depth_return */;
+                                    XGetGeometry(display,  configureEvent->window, &w, &x, &y, &width, &height, &border_width, &depin);
 
+                                    if (depin != 32 && depin != 0) {
+                                        qDebug() << depin;
+                                        dApp->m_x11WindowFuscreen.insert(configureEvent->window, true);
+                                        dApp->setMpvpause();
+                                        continue;
                                     }
 
                                 }
-                                if (/*dApp->m_x11WindowFuscreen.contains(configureEvent->window) || */dApp->m_screenWid.contains(configureEvent->window)) {
-                                    dApp->m_x11WindowFuscreen.remove(configureEvent->window);
-                                }
-                            }
-                            for (auto window : dApp->m_x11WindowFuscreen.keys()) {
-                                Drawable   d     /* d */;
-                                Window     w /* root_return */;
-                                int      x = 0   /* x_return */;
-                                int      y = 0  /* y_return */;
-                                unsigned int width = 0   /* width_return */;
-                                unsigned int height = 0   /* height_return */;
-                                unsigned int border_width = 0  /* border_width_return */;
-                                unsigned int  depin = 0/* depth_return */;
 
-                                XGetGeometry(display,  window, &w, &x, &y, &width, &height, &border_width, &depin);
-                                qDebug() << x << y << width << height << border_width << depin;
-                                int iWidth = width;
-                                int iHeight = height;
-                                if ((x > 0 && y > 0) || (iWidth < screenwidth && iHeight < screenheight) || depin == 32) {
-                                    dApp->m_x11WindowFuscreen.remove(window);
-                                }
                             }
-                            qDebug() << dApp->m_x11WindowFuscreen.count();
-                            if (dApp->m_x11WindowFuscreen.count() == 0 && dApp->m_isNoMpvPause) {
-                                dApp->setMpvPlay();
+                            if (/*dApp->m_x11WindowFuscreen.contains(configureEvent->window) || */dApp->m_screenWid.contains(configureEvent->window)) {
+                                dApp->m_x11WindowFuscreen.remove(configureEvent->window);
                             }
-                            break;
                         }
-                        default:
-                            break;
+                        for (auto window : dApp->m_x11WindowFuscreen.keys()) {
+                            Drawable   d     /* d */;
+                            Window     w /* root_return */;
+                            int      x = 0   /* x_return */;
+                            int      y = 0  /* y_return */;
+                            unsigned int width = 0   /* width_return */;
+                            unsigned int height = 0   /* height_return */;
+                            unsigned int border_width = 0  /* border_width_return */;
+                            unsigned int  depin = 0/* depth_return */;
+
+                            XGetGeometry(display,  window, &w, &x, &y, &width, &height, &border_width, &depin);
+                            qDebug() << x << y << width << height << border_width << depin;
+                            int iWidth = width;
+                            int iHeight = height;
+                            if ((x > 0 && y > 0 && x < (qApp->desktop()->screenGeometry().width() - 10))
+                                    || (y > 0 && x > qApp->desktop()->screenGeometry().width())
+                                    || (iWidth < screenwidth || iHeight < screenheight) || depin == 32) {
+                                dApp->m_x11WindowFuscreen.remove(window);
+                            }
                         }
+                        qDebug() << dApp->m_x11WindowFuscreen.count();
+                        if (dApp->m_x11WindowFuscreen.count() == 0 && dApp->m_isNoMpvPause) {
+                            dApp->setMpvPlay();
+                        }
+                        continue;
                     }
 
                 });
