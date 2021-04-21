@@ -12,6 +12,7 @@
 #include <QMutex>
 
 #include "data.h"
+
 DWIDGET_USE_NAMESPACE
 
 #define dApp (static_cast<Application*>(QCoreApplication::instance()))
